@@ -1,0 +1,11 @@
+# For a description of each parameter and their units of measurement, please check the README.md.
+
+Decision variables:
+    x1: {'LBound':0, 'UBound':100, 'Type': 'float'}
+    x2: {'LBound':-10, 'UBound':50, 'Type': 'float'}
+
+Main parameters:
+    Opt_type: Min
+    Seed: 10
+    Population size: 30
+    Max_generations: 80
