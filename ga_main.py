@@ -41,7 +41,11 @@ def get_parameters(root_dir):
             cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
         search_space_dic = cfg['Decision variables']
         main_params_dic = cfg['Main parameters']
+
+        main_params_dic['elitism_params'] = dict(cfg[main_params_dic['elitism_params']])
+
         params_dic = main_params_dic
+
         print("Loaded inputs successfully.")
         return search_space_dic, params_dic
     except:
@@ -59,7 +63,7 @@ def main(search_space, params_dic):
     c = 0
     for i in l:
         print(i.get_solution())
-    f_model = params_dic['Model_function']
+    f_model = params_dic['model_function']
     P.evaluate_population(f_model)
     print(P)
     P.sort_by_fitness()

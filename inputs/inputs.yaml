@@ -5,8 +5,15 @@ Decision variables:
     x2: {'LBound':-10, 'UBound':50, 'Type': 'float'}
 
 Main parameters:
-    Opt_type: Min
-    Seed: 10
-    Model_function: model_polynomial
-    Population size: 30
-    Max_generations: 80
+    opt_type: min
+    seed: 10
+    model_function: model_polynomial
+    population_size: 30
+    max_generations: 80
+    elitism_params: Elitism
+
+
+Elitism:
+  use_elitism: True
+  n_ind_elitism: 1
+  elitism_function: elitism

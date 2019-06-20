@@ -12,6 +12,7 @@ __email__ = "luis.hmd@gmail.com"
 #----------------------------------------------------------------------------------------
 import random as rand
 import models
+import rcga_operators as op
 
 
 #----------------------------------------------------------------------------------------
@@ -108,15 +109,18 @@ class Population(object):
                     solution_bounded[v] = lb
             elif var_type == 'enumerate':
                 values = self.Search_space.get_variable_values(v)
-                solution[v] = values[rand.randint(0, len(values)-1)]
+                if solution[v] in values:
+                    solution_bounded[v] = solution[v]
+                else:
+                     solution_bounded[v] = values[rand.randint(len(values))]
             elif var_type == 'binary':
-                solution[v] = rand.randint(2)
+                if solution[v] in [0,1]:
+                    solution_bounded[v] = solution[v]
+                else:
+                    solution_bounded[v] = rand.randint(2)
             else:
-                print("Could not determine type for variable {}".format(v))
-                solution[v] = None
-        self.insert_individual(solution)
+                print("Could not enforce bounds for variable {}".format(v))
         return solution_bounded
-
 
     def get_seed(self):
         return self.seed
@@ -171,13 +175,51 @@ class Population(object):
     def evaluate_population(self, f_model):
         self.N_failed_evals = 0
         for i in range(len(self.ind_list)):
-            f = 'models.'+f_model
+            f = 'models.'+f_model # change me
             fitness = eval(f)(self.ind_list[i].get_solution())
             if fitness:
                 self.ind_list[i].update_fitness(fitness)
             else:
                 self.N_failed_evals += 1
         return self.N_failed_evals
+
+
+class rcga(object):
+    """ Creates a real-coded genetic algorithm """
+    def __init__(self, search_space, params):
+        self.N_gen = 0
+        self.params = params
+        self.search_space = search_space
+        self.seed = params['seed']
+        self.pop_size = params['population_size']
+        self.max_gen = params['max_generations']
+        self.model_function = params['model_function']
+        if params['opt_type'] == 'min':
+            self.reverse = False
+        else:
+            self.reverse = True
+
+    def execute(self):
+
+        # Initialise population
+        pop = Population(self.search_space, self.params)
+        pop.initialise(self.pop_size)
+        f = self.params['model_function']
+        pop.evaluate_population(f)
+
+        # Select mating pool
+
+
+        # Apply crossover
+
+
+        # Apply elitism
+        f = 'op.'+self.params['Elitism']['elitism_function']
+        elitism_ind = eval(f)(self.params['Elitism'], reverse=self.reverse)
+
+        # Apply mutation
+
+        return 0
 
 #----------------------------------------------------------------------------------------
 # TESTING
