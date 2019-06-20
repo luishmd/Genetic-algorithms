@@ -59,6 +59,11 @@ def main(search_space, params_dic):
     c = 0
     for i in l:
         print(i.get_solution())
+    f_model = params_dic['Model_function']
+    P.evaluate_population(f_model)
+    print(P)
+    P.sort_by_fitness()
+    print(P)
     return 0
 
 

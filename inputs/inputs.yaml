@@ -7,5 +7,6 @@ Decision variables:
 Main parameters:
     Opt_type: Min
     Seed: 10
+    Model_function: model_polynomial
     Population size: 30
     Max_generations: 80

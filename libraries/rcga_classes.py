@@ -11,6 +11,7 @@ __email__ = "luis.hmd@gmail.com"
 # IMPORTS
 #----------------------------------------------------------------------------------------
 import random as rand
+import models
 
 
 #----------------------------------------------------------------------------------------
@@ -91,6 +92,32 @@ class Population(object):
             s += i.__str__() + "\n"
         return s
 
+    def __enforce_solution_bounds(self, solution):
+        solution_bounded = {}
+        vars_names = self.Search_space.get_variables_names()
+        for v in vars_names:
+            var_type = self.Search_space.get_variable_type(v)
+            if var_type == 'int' or var_type == 'float':
+                lb = self.Search_space.get_variable_lbound(v)
+                ub = self.Search_space.get_variable_ubound(v)
+                if (solution[v] >= lb) and (solution[v] <= ub):
+                    solution_bounded[v] = solution[v]
+                elif (solution[v] >= ub):
+                    solution_bounded[v] = ub
+                else: # solution[v] <= lb
+                    solution_bounded[v] = lb
+            elif var_type == 'enumerate':
+                values = self.Search_space.get_variable_values(v)
+                solution[v] = values[rand.randint(0, len(values)-1)]
+            elif var_type == 'binary':
+                solution[v] = rand.randint(2)
+            else:
+                print("Could not determine type for variable {}".format(v))
+                solution[v] = None
+        self.insert_individual(solution)
+        return solution_bounded
+
+
     def get_seed(self):
         return self.seed
 
@@ -131,10 +158,12 @@ class Population(object):
         tuple_list.sort(key=lambda tup: tup[1], reverse=reverse)
         for t in tuple_list:
             ind_list_sorted.append(self.ind_list[t[0]])
+        self.ind_list = ind_list_sorted
         return 0
 
     def insert_individual(self, solution):
-        ind = Individual(self.size+1, solution)
+        sol = self.__enforce_solution_bounds(solution)
+        ind = Individual(self.size+1, sol)
         self.ind_list.append(ind)
         self.size += 1
         return 0
@@ -142,7 +171,8 @@ class Population(object):
     def evaluate_population(self, f_model):
         self.N_failed_evals = 0
         for i in range(len(self.ind_list)):
-            fitness = eval(f_model)(self.ind_list[i].get_solution())
+            f = 'models.'+f_model
+            fitness = eval(f)(self.ind_list[i].get_solution())
             if fitness:
                 self.ind_list[i].update_fitness(fitness)
             else:
