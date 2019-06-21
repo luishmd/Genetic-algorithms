@@ -43,6 +43,9 @@ def get_parameters(root_dir):
         main_params_dic = cfg['Main parameters']
 
         main_params_dic['elitism_params'] = dict(cfg[main_params_dic['elitism_params']])
+        main_params_dic['selection_params'] = dict(cfg[main_params_dic['selection_params']])
+        main_params_dic['crossover_params'] = dict(cfg[main_params_dic['crossover_params']])
+        main_params_dic['mutation_params'] = dict(cfg[main_params_dic['mutation_params']])
 
         params_dic = main_params_dic
 
@@ -56,19 +59,19 @@ def get_parameters(root_dir):
 #----------------------------------------------------------------------------------------
 # MAIN
 #----------------------------------------------------------------------------------------
-def main(search_space, params_dic):
-    P = rcga.Population(search_space)
-    P.initialise(10)
-    l = P.get_individuals()
-    c = 0
-    for i in l:
-        print(i.get_solution())
-    f_model = params_dic['model_function']
-    P.evaluate_population(f_model)
-    print(P)
-    P.sort_by_fitness()
-    print(P)
-    return 0
+#def main(search_space, params_dic):
+#    P = rcga.Population(search_space)
+#    P.initialise(10)
+#    l = P.get_individuals()
+#    c = 0
+#    for i in l:
+#        print(i.get_solution())
+#    f_model = 'models.' + params_dic['model_function']
+#    P.evaluate_population(f_model)
+#    print(P)
+#    P.sort_by_fitness()
+ #   print(P)
+ #   return 0
 
 
 
@@ -78,4 +81,6 @@ def main(search_space, params_dic):
 #----------------------------------------------------------------------------------------
 if __name__ == "__main__":
     search_space, params_dic = get_parameters(root_dir)
-    main(search_space, params_dic)
+    ga = rcga.rcga(search_space, params_dic)
+    ga.execute()
+#    main(search_space, params_dic)

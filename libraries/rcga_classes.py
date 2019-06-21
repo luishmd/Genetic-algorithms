@@ -11,6 +11,7 @@ __email__ = "luis.hmd@gmail.com"
 # IMPORTS
 #----------------------------------------------------------------------------------------
 import random as rand
+import copy
 import models
 import rcga_operators as op
 
@@ -31,6 +32,9 @@ class Individual(object):
         else:
             return "Individual {} has fitness None".format(self.id)
 
+    def copy(self):
+        return copy.deepcopy(self)
+
     def get_solution(self):
         return self.solution
 
@@ -39,6 +43,14 @@ class Individual(object):
 
     def update_fitness(self, new_fitness):
         self.fitness = new_fitness
+        return 0
+
+    def update_solution(self, new_solution, new_fitness=None):
+        self.solution = new_solution
+        if new_fitness:
+            self.fitness = new_fitness
+        else:
+            self.fitness = None
         return 0
 
 
@@ -85,7 +97,7 @@ class Population(object):
         self.ind_list = []
         self.N_failed_evals = 0
         self.seed = seed
-        self.Search_space = Search_space(search_space)
+        self.search_space = search_space
 
     def __str__(self):
         s = "Size: {}\nSeed: {}\n".format(self.size, self.seed)
@@ -93,14 +105,17 @@ class Population(object):
             s += i.__str__() + "\n"
         return s
 
+    def copy(self):
+        return copy.deepcopy(self)
+
     def __enforce_solution_bounds(self, solution):
         solution_bounded = {}
-        vars_names = self.Search_space.get_variables_names()
+        vars_names = self.search_space.get_variables_names()
         for v in vars_names:
-            var_type = self.Search_space.get_variable_type(v)
+            var_type = self.search_space.get_variable_type(v)
             if var_type == 'int' or var_type == 'float':
-                lb = self.Search_space.get_variable_lbound(v)
-                ub = self.Search_space.get_variable_ubound(v)
+                lb = self.search_space.get_variable_lbound(v)
+                ub = self.search_space.get_variable_ubound(v)
                 if (solution[v] >= lb) and (solution[v] <= ub):
                     solution_bounded[v] = solution[v]
                 elif (solution[v] >= ub):
@@ -108,7 +123,7 @@ class Population(object):
                 else: # solution[v] <= lb
                     solution_bounded[v] = lb
             elif var_type == 'enumerate':
-                values = self.Search_space.get_variable_values(v)
+                values = self.search_space.get_variable_values(v)
                 if solution[v] in values:
                     solution_bounded[v] = solution[v]
                 else:
@@ -125,6 +140,12 @@ class Population(object):
     def get_seed(self):
         return self.seed
 
+    def get_size(self):
+        return self.size
+
+    def get_search_space(self):
+        return self.search_space
+
     def get_individual(self, ind_id):
         return self.ind_list[ind_id]
 
@@ -133,17 +154,17 @@ class Population(object):
 
     def initialise(self, pop_size):
         rand.seed(a=self.seed)
-        vars_names = self.Search_space.get_variables_names()
+        vars_names = self.search_space.get_variables_names()
         for i in range(pop_size):
             solution = {}
             for v in vars_names:
-                var_type = self.Search_space.get_variable_type(v)
+                var_type = self.search_space.get_variable_type(v)
                 if var_type == 'int' or var_type == 'float':
-                    lb = self.Search_space.get_variable_lbound(v)
-                    ub = self.Search_space.get_variable_ubound(v)
+                    lb = self.search_space.get_variable_lbound(v)
+                    ub = self.search_space.get_variable_ubound(v)
                     solution[v] = lb + (ub - lb)*rand.random()
                 elif var_type == 'enumerate':
-                    values = self.Search_space.get_variable_values(v)
+                    values = self.search_space.get_variable_values(v)
                     solution[v] = values[rand.randint(0, len(values)-1)]
                 elif var_type == 'binary':
                     solution[v] = rand.randint(2)
@@ -165,9 +186,9 @@ class Population(object):
         self.ind_list = ind_list_sorted
         return 0
 
-    def insert_individual(self, solution):
+    def insert_individual(self, solution, fitness=None):
         sol = self.__enforce_solution_bounds(solution)
-        ind = Individual(self.size+1, sol)
+        ind = Individual(self.size+1, sol, fitness=fitness)
         self.ind_list.append(ind)
         self.size += 1
         return 0
@@ -175,12 +196,12 @@ class Population(object):
     def evaluate_population(self, f_model):
         self.N_failed_evals = 0
         for i in range(len(self.ind_list)):
-            f = 'models.'+f_model # change me
-            fitness = eval(f)(self.ind_list[i].get_solution())
-            if fitness:
-                self.ind_list[i].update_fitness(fitness)
-            else:
-                self.N_failed_evals += 1
+            if self.ind_list[i].get_fitness() == None:
+                fitness = eval(f_model)(self.ind_list[i].get_solution())
+                if fitness:
+                    self.ind_list[i].update_fitness(fitness)
+                else:
+                    self.N_failed_evals += 1
         return self.N_failed_evals
 
 
@@ -189,7 +210,7 @@ class rcga(object):
     def __init__(self, search_space, params):
         self.N_gen = 0
         self.params = params
-        self.search_space = search_space
+        self.search_space = Search_space(search_space)
         self.seed = params['seed']
         self.pop_size = params['population_size']
         self.max_gen = params['max_generations']
@@ -201,23 +222,38 @@ class rcga(object):
 
     def execute(self):
 
-        # Initialise population
-        pop = Population(self.search_space, self.params)
-        pop.initialise(self.pop_size)
-        f = self.params['model_function']
-        pop.evaluate_population(f)
+        # Get functions
+        f_model = 'models.' + self.params['model_function']
+        f_elitism = 'op.'+self.params['elitism_params']['elitism_function']
+        f_selection = 'op.' + self.params['selection_params']['selection_function']
+        f_crossover = 'op.' + self.params['crossover_params']['crossover_function']
+        f_mutation = 'op.' + self.params['mutation_params']['mutation_function']
+
+        # Initialise and evaluate population
+        Pop = Population(self.search_space, seed=self.seed)
+        Pop.initialise(self.pop_size)
+        Pop.evaluate_population(f_model)
 
         # Select mating pool
-
+        mp = eval(f_selection)(Pop, self.params)
+        print(mp)
 
         # Apply crossover
 
 
         # Apply elitism
-        f = 'op.'+self.params['Elitism']['elitism_function']
-        elitism_ind = eval(f)(self.params['Elitism'], reverse=self.reverse)
+        elitism_ind = eval(f_elitism)(Pop, self.params, reverse=self.reverse)
+
+        # Construct new population
+        Pop_new = Pop.copy()
 
         # Apply mutation
+        Pop_new = eval(f_mutation)(Pop_new, self.params)
+        Pop_new.evaluate_population(f_model)
+
+        # Write results
+
+
 
         return 0
 

@@ -11,9 +11,27 @@ Main parameters:
     population_size: 30
     max_generations: 80
     elitism_params: Elitism
+    selection_params: Selection
+    crossover_params: Crossover
+    mutation_params: Mutation
 
 
 Elitism:
   use_elitism: True
-  n_ind_elitism: 1
   elitism_function: elitism
+  n_ind_elitism: 1
+
+Selection:
+  selection_function: tournament
+  n_ind_tournament: 8
+  mating_pool_fraction: 0.5
+
+Crossover:
+  crossover_function: blend_xover
+  alpha: 0.3
+  p_cross: 0.95
+
+Mutation:
+  mutation_function: polynomial_mutation
+  distribution_constant: 2
+  p_mutation: 0.05
