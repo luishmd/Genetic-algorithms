@@ -29,7 +29,7 @@ Selection:
 Crossover:
   crossover_function: blend_xover
   alpha: 0.3
-  p_cross: 0.95
+  p_crossover: 0.95
 
 Mutation:
   mutation_function: polynomial_mutation

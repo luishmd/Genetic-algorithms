@@ -146,11 +146,25 @@ class Population(object):
     def get_search_space(self):
         return self.search_space
 
-    def get_individual(self, ind_id):
-        return self.ind_list[ind_id]
+    def get_individual(self, ind_index):
+        return self.ind_list[ind_index]
 
     def get_individuals(self):
         return self.ind_list
+
+    def get_best_individual(self, opt_type):
+        best_ind = None
+        if opt_type == 'max':
+            best_fitness = float('-Inf')
+        else:
+            best_fitness = float('+Inf')
+        for i in self.ind_list:
+            fitness = i.get_fitness()
+            if opt_type == 'max' and fitness > best_fitness:
+                best_ind = i
+            if opt_type == 'min' and fitness < best_fitness:
+                best_ind = i
+        return best_ind
 
     def initialise(self, pop_size):
         rand.seed(a=self.seed)
@@ -234,26 +248,39 @@ class rcga(object):
         Pop.initialise(self.pop_size)
         Pop.evaluate_population(f_model)
 
-        # Select mating pool
-        mp = eval(f_selection)(Pop, self.params)
-        print(mp)
+        while self.N_gen < self.max_gen:
+            # Select mating pool
+            mating_pop = eval(f_selection)(Pop, self.params)
 
-        # Apply crossover
+            # Apply crossover
+            crossed_pop = eval(f_crossover)(mating_pop, self.params)
+
+            # Apply mutation
+            mut_pop = eval(f_mutation)(crossed_pop, self.params)
+
+            # Apply elitism
+            elitism_ind_list = eval(f_elitism)(Pop, self.params, reverse=self.reverse)
+
+            # Increment generation
+            self.N_gen += 1
+
+            # Write results
+            # Include statistics
+            # Add some protections
 
 
-        # Apply elitism
-        elitism_ind = eval(f_elitism)(Pop, self.params, reverse=self.reverse)
 
-        # Construct new population
-        Pop_new = Pop.copy()
+            # Build new population
+            del Pop
+            Pop = Population(self.search_space, seed=self.seed)
+            for i in elitism_ind_list:
+                Pop.insert_individual(i.get_solution(), fitness=i.get_fitness())
+            for i in mut_pop.get_individuals():
+                if Pop.get_size() < self.pop_size:
+                    Pop.insert_individual(i.get_solution())
+            Pop.evaluate_population(f_model)
 
-        # Apply mutation
-        Pop_new = eval(f_mutation)(Pop_new, self.params)
-        Pop_new.evaluate_population(f_model)
-
-        # Write results
-
-
+            print(Pop.get_best_individual('min').get_fitness())
 
         return 0
 

@@ -20,7 +20,7 @@ import rcga_classes
 # OPERATORS
 #----------------------------------------------------------------------------------------
 
-# Elitism
+# Elitism operators
 def elitism(Pop, params, reverse=False):
     P = Pop.copy()
     elitism_params = params['elitism_params']
@@ -34,7 +34,7 @@ def elitism(Pop, params, reverse=False):
     return best_ind_list
 
 
-# Selection
+# Selection operators
 def tournament(Pop, params):
     rand.seed(a=Pop.get_seed())
     opt_type = params['opt_type']
@@ -76,13 +76,70 @@ def tournament(Pop, params):
 
     return mp
 
-# Crossover
+# Crossover operators
+def blend_xover(mp, params):
+    rand.seed(a=mp.get_seed())
+    search_space = mp.get_search_space()
+    vars_names = search_space.get_variables_names()
+    ALPHA = params['crossover_params']['alpha']
+    P_CROSS = params['crossover_params']['p_crossover']
+    POP_SIZE = params['population_size']
+    MP_SIZE = mp.get_size()
+    pop_crossed = rcga_classes.Population(mp.get_search_space(), seed=mp.get_seed())
 
+    # Select parents
+    for i in range(0, POP_SIZE, 2):
+        parents_index = []
+        r1 = math.floor( rand.random()*MP_SIZE)
+        parents_index.append(r1)
+        r2 = math.floor(rand.random() * MP_SIZE)
+        while r2 in parents_index:
+            r2 = math.floor(rand.random() * MP_SIZE)
+        parents_index.append(r2)
 
-# Mutation
+        # Apply crossover
+        if rand.random() < P_CROSS:
+            p_solution_1 = mp.get_individual(parents_index[0]).get_solution()
+            p_solution_2 = mp.get_individual(parents_index[1]).get_solution()
+            c_solution_1 = {}
+            c_solution_2 = {}
+            for v in vars_names:
+                var_type = search_space.get_variable_type(v)
+                if var_type == 'int' or var_type == 'float':
+                    c_max = max(p_solution_1[v], p_solution_2[v])
+                    c_min = min(p_solution_1[v], p_solution_2[v])
+                    gamma = c_max - c_min
+                    lower = c_min - gamma*ALPHA
+                    upper = c_max + gamma*ALPHA
+                    c_solution_1[v] = lower + rand.random() * (upper - lower)
+                    c_solution_2[v] = lower + rand.random() * (upper - lower)
+                elif var_type == 'enumerate':
+                    values = search_space.get_variable_values(v)
+                    c_max = max(values.index(p_solution_1[v]), values.index(p_solution_2[v]))
+                    c_min = min(values.index(p_solution_1[v]), values.index(p_solution_2[v]))
+                    gamma = c_max - c_min
+                    lower = c_min - gamma * ALPHA
+                    upper = c_max + gamma * ALPHA
+                    c_solution_1[v] = values[min(max(math.floor(lower + rand.random() * (upper - lower)), 0), len(values))]
+                    c_solution_2[v] = values[min(max(math.floor(lower + rand.random() * (upper - lower)), 0), len(values))]
+                elif var_type == 'binary':
+                    c_max = max(p_solution_1[v], p_solution_2[v])
+                    c_min = min(p_solution_1[v], p_solution_2[v])
+                    gamma = c_max - c_min
+                    c_solution_1[v] = min(max(c_min + rand.random() * gamma, 0), 1)
+                    c_solution_2[v] = min(max(c_min + rand.random() * gamma, 0), 1)
+
+            pop_crossed.insert_individual(c_solution_1)
+            # Only inser child 2 if there is space in population
+            if pop_crossed.get_size() < POP_SIZE:
+                pop_crossed.insert_individual(c_solution_2)
+
+    return pop_crossed
+
+# Mutation operators
 def polynomial_mutation(Pop, params):
     rand.seed(a=Pop.get_seed())
-    p_mut = params['mutation_params']['p_mutation']
+    P_MUT = params['mutation_params']['p_mutation']
     C = params['mutation_params']['distribution_constant']
     search_space = Pop.get_search_space()
     vars_names = search_space.get_variables_names()
@@ -91,7 +148,7 @@ def polynomial_mutation(Pop, params):
         solution = i.get_solution()
         mutation_occurred = False
         for v in vars_names:
-            if rand.random() < p_mut:
+            if rand.random() < P_MUT:
                 mutation_occurred = True
                 # Mutate
                 var_type = search_space.get_variable_type(v)

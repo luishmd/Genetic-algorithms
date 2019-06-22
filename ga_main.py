@@ -18,7 +18,7 @@ import rcga_classes as rcga
 
 
 #----------------------------------------------------------------------------------------
-    # PRE-CALCULATIONS
+# PRE-CALCULATIONS
 #----------------------------------------------------------------------------------------
 # Get inputs
 root_dir = os.getcwd()
@@ -57,30 +57,9 @@ def get_parameters(root_dir):
 
 
 #----------------------------------------------------------------------------------------
-# MAIN
-#----------------------------------------------------------------------------------------
-#def main(search_space, params_dic):
-#    P = rcga.Population(search_space)
-#    P.initialise(10)
-#    l = P.get_individuals()
-#    c = 0
-#    for i in l:
-#        print(i.get_solution())
-#    f_model = 'models.' + params_dic['model_function']
-#    P.evaluate_population(f_model)
-#    print(P)
-#    P.sort_by_fitness()
- #   print(P)
- #   return 0
-
-
-
-
-#----------------------------------------------------------------------------------------
 # EXECUTION
 #----------------------------------------------------------------------------------------
 if __name__ == "__main__":
     search_space, params_dic = get_parameters(root_dir)
     ga = rcga.rcga(search_space, params_dic)
     ga.execute()
-#    main(search_space, params_dic)
