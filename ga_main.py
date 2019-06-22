@@ -62,4 +62,5 @@ def get_parameters(root_dir):
 if __name__ == "__main__":
     search_space, params_dic = get_parameters(root_dir)
     ga = rcga.rcga(search_space, params_dic)
-    ga.execute()
+    best_ind = ga.execute()
+    print(best_ind.get_solution())

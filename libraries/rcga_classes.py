@@ -96,6 +96,7 @@ class Population(object):
         self.size = 0
         self.ind_list = []
         self.N_failed_evals = 0
+        self.N_evals = 0
         self.seed = seed
         self.search_space = search_space
 
@@ -208,15 +209,15 @@ class Population(object):
         return 0
 
     def evaluate_population(self, f_model):
-        self.N_failed_evals = 0
         for i in range(len(self.ind_list)):
             if self.ind_list[i].get_fitness() == None:
                 fitness = eval(f_model)(self.ind_list[i].get_solution())
+                self.N_evals += 1
                 if fitness:
                     self.ind_list[i].update_fitness(fitness)
                 else:
                     self.N_failed_evals += 1
-        return self.N_failed_evals
+        return [self.N_evals, self.N_failed_evals]
 
 
 class rcga(object):
@@ -229,7 +230,13 @@ class rcga(object):
         self.pop_size = params['population_size']
         self.max_gen = params['max_generations']
         self.model_function = params['model_function']
-        if params['opt_type'] == 'min':
+        self.opt_type = params['opt_type']
+        self.best_ind = None
+        self.N_evals = 0
+        self.N_failed_evals = 0
+        self.statistics = {}
+        self.write = {}
+        if self.opt_type == 'min':
             self.reverse = False
         else:
             self.reverse = True
@@ -246,7 +253,12 @@ class rcga(object):
         # Initialise and evaluate population
         Pop = Population(self.search_space, seed=self.seed)
         Pop.initialise(self.pop_size)
-        Pop.evaluate_population(f_model)
+        N_evals, N_failed_evals = Pop.evaluate_population(f_model)
+        self.best_ind = Pop.get_best_individual(self.opt_type)
+
+        # Statistics
+        self.statistics['N_evals'] = N_evals
+        self.statistics['N_failed_evals'] = N_failed_evals
 
         while self.N_gen < self.max_gen:
             # Select mating pool
@@ -261,15 +273,6 @@ class rcga(object):
             # Apply elitism
             elitism_ind_list = eval(f_elitism)(Pop, self.params, reverse=self.reverse)
 
-            # Increment generation
-            self.N_gen += 1
-
-            # Write results
-            # Include statistics
-            # Add some protections
-
-
-
             # Build new population
             del Pop
             Pop = Population(self.search_space, seed=self.seed)
@@ -279,10 +282,19 @@ class rcga(object):
                 if Pop.get_size() < self.pop_size:
                     Pop.insert_individual(i.get_solution())
             Pop.evaluate_population(f_model)
+            self.best_ind = Pop.get_best_individual(self.opt_type)
 
-            print(Pop.get_best_individual('min').get_fitness())
+            # Increment generation
+            self.N_gen += 1
 
-        return 0
+            # Statistics
+            self.statistics['N_evals'] += N_evals
+            self.statistics['N_failed_evals'] += N_failed_evals
+
+            # Write results
+            # Add some protections
+
+        return self.best_ind
 
 #----------------------------------------------------------------------------------------
 # TESTING

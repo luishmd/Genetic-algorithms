@@ -8,8 +8,8 @@ Main parameters:
     opt_type: min
     seed: 10
     model_function: model_polynomial
-    population_size: 30
-    max_generations: 80
+    population_size: 100
+    max_generations: 10
     elitism_params: Elitism
     selection_params: Selection
     crossover_params: Crossover
@@ -23,7 +23,7 @@ Elitism:
 
 Selection:
   selection_function: tournament
-  n_ind_tournament: 8
+  n_ind_tournament: 16
   mating_pool_fraction: 0.5
 
 Crossover:
@@ -34,4 +34,4 @@ Crossover:
 Mutation:
   mutation_function: polynomial_mutation
   distribution_constant: 2
-  p_mutation: 0.05
+  p_mutation: 0.03
