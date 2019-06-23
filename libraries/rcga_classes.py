@@ -115,6 +115,9 @@ class Population(object):
         return copy.deepcopy(self)
 
     def __enforce_solution_bounds(self, solution):
+        """
+        Internal function that enforces the bounds prior to inserting an individual in the population.
+        """
         solution_bounded = {}
         vars_names = self.search_space.get_variables_names()
         for v in vars_names:
@@ -153,17 +156,28 @@ class Population(object):
         return self.search_space
 
     def get_individual(self, ind_index):
+        """
+        Function that returns a single individual from its index in the population
+        """
         return self.ind_list[ind_index]
 
     def get_individuals(self):
+        """
+        Function that returns all the individual it contains.
+        """
         return self.ind_list
 
     def get_best_individual(self, opt_type):
+        """
+        Function that returns the best individual
+        """
         best_ind = None
+        # Determine optimisation type
         if opt_type == 'max':
             best_fitness = float('-Inf')
         else:
             best_fitness = float('+Inf')
+        # Search for best individual
         for i in self.ind_list:
             fitness = i.get_fitness()
             if opt_type == 'max' and fitness > best_fitness:
@@ -173,6 +187,9 @@ class Population(object):
         return best_ind
 
     def initialise(self, pop_size):
+        """
+        Function that initialises a population of a given size
+        """
         rand.seed(a=self.seed)
         vars_names = self.search_space.get_variables_names()
         for i in range(pop_size):
@@ -195,6 +212,9 @@ class Population(object):
         return 0
 
     def sort_by_fitness(self, reverse=False):
+        """
+        Function that sorts a population by fitness, depending on the optimisation type (min in ascending order)
+        """
         ind_list_sorted = []
         tuple_list = []
         for i in range(self.size):
@@ -207,6 +227,9 @@ class Population(object):
         return 0
 
     def insert_individual(self, solution, fitness=None):
+        """
+        Function that inserts an individual in the population, given a solution.
+        """
         sol = self.__enforce_solution_bounds(solution)
         ind = Individual(self.size+1, sol, fitness=fitness)
         self.ind_list.append(ind)
@@ -214,6 +237,9 @@ class Population(object):
         return 0
 
     def evaluate_population(self, f_model):
+        """
+        Function that evaluates the population
+        """
         for i in range(len(self.ind_list)):
             if self.ind_list[i].get_fitness() == None:
                 fitness = eval(f_model)(self.ind_list[i].get_solution())
@@ -247,6 +273,9 @@ class rcga(object):
             self.reverse = True
 
     def __create_output_dir(self):
+        """
+        Internal function that creates the outpur dir and copies the template file
+        """
         # Create results directory and create output file from template
         dir_name = datetime.datetime.now().strftime("%d%m%Y_%H%M%S")
         output_dir = lib_directory_ops.create_dir(self.params['Excel output dir'], dir_name)
@@ -259,6 +288,9 @@ class rcga(object):
         assert r != None
 
     def __write_parameters(self):
+        """
+        Internal function that writes the parameters
+        """
         ws = self.wb["Parameters"]
         # Write parameters
         row_i = 4
@@ -272,6 +304,9 @@ class rcga(object):
         return 0
 
     def __write_optimal_point(self):
+        """
+        Internal function that writes the optimal point
+        """
         ws = self.wb["Optimisation"]
         if self.params['write_to_console']:
             print("\nOptimal point:")
@@ -287,6 +322,9 @@ class rcga(object):
         return 0
 
     def __write_generation(self):
+        """
+        Internal function that writes the generation results
+        """
         ws = self.wb["Optimisation"]
         # Write variables names
         col_i = 3
@@ -310,6 +348,9 @@ class rcga(object):
         return 0
 
     def __write_statistics(self):
+        """
+        Internal function that writes the statistics
+        """
         ws = self.wb["Statistics"]
         # Write statistics
         ws.cell(row=3, column=2, value=self.statistics['N_failed_evals'])
@@ -317,6 +358,9 @@ class rcga(object):
         return 0
 
     def execute(self):
+        """
+        Main function of the class, as it runs the rcga algorithm.
+        """
 
         # Get functions
         f_model = 'models.' + self.params['model_function']
@@ -345,6 +389,7 @@ class rcga(object):
         self.__write_parameters()
         self.__write_generation()
 
+        # Determine next generation
         while self.N_gen < self.max_gen:
             # Select mating pool
             mating_pop = eval(f_selection)(Pop, self.params)
