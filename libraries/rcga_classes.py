@@ -14,6 +14,11 @@ import random as rand
 import copy
 import models
 import rcga_operators as op
+import datetime
+import lib_directory_ops
+import lib_path_ops
+import lib_file_ops
+import lib_excel_ops_openpyxl as lib_excel
 
 
 #----------------------------------------------------------------------------------------
@@ -241,6 +246,76 @@ class rcga(object):
         else:
             self.reverse = True
 
+    def __create_output_dir(self):
+        # Create results directory and create output file from template
+        dir_name = datetime.datetime.now().strftime("%d%m%Y_%H%M%S")
+        output_dir = lib_directory_ops.create_dir(self.params['Excel output dir'], dir_name)
+        assert output_dir != None
+        new_file = 'output_' + dir_name + '.xlsx'
+        output_file = lib_path_ops.join_paths(output_dir, new_file)
+        r = lib_file_ops.copy_file(self.params['Excel template file'], output_file)
+        self.params['Excel output file'] = output_file
+        self.write['generation row index'] = 13
+        assert r != None
+
+    def __write_parameters(self):
+        ws = self.wb["Parameters"]
+        # Write parameters
+        row_i = 4
+        for param in self.params.keys():
+            ws.cell(row=row_i, column=1, value=param)
+            if type(self.params[param]) == type({}):
+                ws.cell(row=row_i, column=2, value=str(self.params[param]))
+            else:
+                ws.cell(row=row_i, column=2, value=self.params[param])
+            row_i += 1
+        return 0
+
+    def __write_optimal_point(self):
+        ws = self.wb["Optimisation"]
+        if self.params['write_to_console']:
+            print("\nOptimal point:")
+        # Write optimal point
+        col_i = 2
+        for v in self.search_space.get_variables_names():
+            ws.cell(row=5, column=col_i, value=v)
+            ws.cell(row=6, column=col_i, value=self.best_ind.get_solution()[v])
+            if self.params['write_to_console']:
+                s = '{}: {}'.format(v, self.best_ind.get_solution()[v])
+                print(s)
+            col_i += 1
+        return 0
+
+    def __write_generation(self):
+        ws = self.wb["Optimisation"]
+        # Write variables names
+        col_i = 3
+        for v in self.search_space.get_variables_names():
+            ws.cell(row=12, column=col_i, value=v)
+            col_i += 1
+        # Write generation info
+        row_i = self.write['generation row index']
+        ws.cell(row=row_i, column=1, value=self.N_gen)
+        ws.cell(row=row_i, column=2, value=self.best_ind.get_fitness())
+        col_i = 3
+        for v in self.search_space.get_variables_names():
+            ws.cell(row=row_i, column=col_i, value=self.best_ind.get_solution()[v])
+            col_i += 1
+        self.write['generation row index'] += 1
+
+        # Write to console
+        if self.params['write_to_console']:
+            s = "\t{}\t{}".format(self.N_gen, self.best_ind.get_fitness())
+            print(s)
+        return 0
+
+    def __write_statistics(self):
+        ws = self.wb["Statistics"]
+        # Write statistics
+        ws.cell(row=3, column=2, value=self.statistics['N_failed_evals'])
+        ws.cell(row=4, column=2, value=self.statistics['N_evals'])
+        return 0
+
     def execute(self):
 
         # Get functions
@@ -259,6 +334,16 @@ class rcga(object):
         # Statistics
         self.statistics['N_evals'] = N_evals
         self.statistics['N_failed_evals'] = N_failed_evals
+
+        # Create output directory and files
+        self.__create_output_dir()
+        self.wb = lib_excel.open_workbook(self.params['Excel output file'])
+
+        # Write initial results
+        if self.params['write_to_console']:
+            print("\nGen.\tFitness")
+        self.__write_parameters()
+        self.__write_generation()
 
         while self.N_gen < self.max_gen:
             # Select mating pool
@@ -281,7 +366,7 @@ class rcga(object):
             for i in mut_pop.get_individuals():
                 if Pop.get_size() < self.pop_size:
                     Pop.insert_individual(i.get_solution())
-            Pop.evaluate_population(f_model)
+            N_evals, N_failed_evals = Pop.evaluate_population(f_model)
             self.best_ind = Pop.get_best_individual(self.opt_type)
 
             # Increment generation
@@ -292,7 +377,15 @@ class rcga(object):
             self.statistics['N_failed_evals'] += N_failed_evals
 
             # Write results
-            # Add some protections
+            self.__write_generation()
+
+        # Write optimal results and statistics
+        self.__write_optimal_point()
+        self.__write_statistics()
+
+        # Close necessary files
+        lib_excel.save_workbook(self.wb, self.params['Excel output file'])
+        self.wb.close()
 
         return self.best_ind
 
