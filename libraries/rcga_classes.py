@@ -77,12 +77,18 @@ class Search_space(object):
             return None
 
     def get_variable_lbound(self, var):
+        """
+        Function that returns the lower bound for a given variable.
+        """
         try:
             return self.search_space[var]["LBound"]
         except KeyError:
             return None
 
     def get_variable_ubound(self, var):
+        """
+        Function that returns the upper bound for a given variable.
+        """
         try:
             return self.search_space[var]["UBound"]
         except KeyError:
@@ -213,7 +219,8 @@ class Population(object):
 
     def sort_by_fitness(self, reverse=False):
         """
-        Function that sorts a population by fitness, depending on the optimisation type (min in ascending order)
+        Function that sorts a population by fitness, depending on the optimisation type (min in ascending order).
+        return: Sorts the individuals in the population itself, so it sorts the population.
         """
         ind_list_sorted = []
         tuple_list = []
