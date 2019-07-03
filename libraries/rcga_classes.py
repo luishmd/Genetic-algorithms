@@ -274,7 +274,7 @@ class rcga(object):
 
     def __create_output_dir(self):
         """
-        Internal function that creates the outpur dir and copies the template file
+        Internal function that creates the output dir and copies the template file
         """
         # Create results directory and create output file from template
         dir_name = datetime.datetime.now().strftime("%d%m%Y_%H%M%S")
